@@ -96,7 +96,7 @@ if __name__ == "__main__":
     # create client list
     clients = []
 
-    # create process
+    # create training processes
     processes = []
     events = []
     train_queue = Queue()
