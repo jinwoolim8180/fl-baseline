@@ -2,7 +2,13 @@ from models.nets import MLP, CNNMnist, CNNFemnist, CNNCifar, CharLSTM
 
 def get_model(args, device, img_size=[28, 28]):
     # build model
-    if args.model == 'cnn':
+    if args.dataset == 'femnist' and args.model == 'cnn':
+        args.n_channels = 1
+        args.n_classes = 10
+        net = CNNFemnist().to(device)
+    elif args.dataset == 'shakespeare' and args.model == 'lstm':
+        net = CharLSTM().to(device)
+    elif args.model == 'cnn':
         if args.dataset == 'cifar10':
             args.n_channels = 3
             args.n_classes = 10
@@ -15,12 +21,6 @@ def get_model(args, device, img_size=[28, 28]):
             args.n_channels = 1
             args.n_classes = 10
             net = CNNMnist(args=args).to(device)
-    elif args.dataset == 'femnist' and args.model == 'cnn':
-        args.n_channels = 1
-        args.n_classes = 10
-        net = CNNFemnist(args=args).to(device)
-    elif args.dataset == 'shakespeare' and args.model == 'lstm':
-        net = CharLSTM().to(device)
     elif args.model == 'mlp':
         len_in = 1
         for x in img_size:
