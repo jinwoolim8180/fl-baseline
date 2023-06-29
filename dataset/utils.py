@@ -10,8 +10,7 @@ def get_dataset(args):
             dataset_train = FEMNIST(train=True)
             dataset_test = FEMNIST(train=False)
             dict_users = dataset_train.get_client_dic()
-            args.num_users = len(dict_users)
-            print(args.num_users)
+            args.n_clients = len(dict_users)
             if args.iid:
                 exit('Error: femnist dataset is naturally non-iid')
             else:
@@ -20,7 +19,7 @@ def get_dataset(args):
             dataset_train = ShakeSpeare(train=True)
             dataset_test = ShakeSpeare(train=False)
             dict_users = dataset_train.get_client_dic()
-            args.num_users = len(dict_users)
+            args.n_clients = len(dict_users)
             if args.iid:
                 exit('Error: ShakeSpeare dataset is naturally non-iid')
             else:
@@ -71,7 +70,7 @@ def get_dataset(args):
             if args.spc:
                 dict_users = sampling_spc(dataset_train, args.n_clients)
             else:
-                dict_users = sampling_dirichlet(dataset_train, args.n_clients)
+                dict_users = sampling_dirichlet(dataset_train, args.n_clients, beta=args.beta)
 
     return dataset_train, dataset_test, dict_users
 
