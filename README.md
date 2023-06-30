@@ -4,7 +4,15 @@ This is a baseline framework for federated learning.
 
 It supports various datasets and optimization strategies.
 
-## Install requirements
+---
+## Index
+1. [Install requirements](#install-requirements)
+1. [Catalog](#catalog)
+1. [Training options](#training-options)
+
+---
+
+## [Install requirements](#index)
 
 To install requirements, run the command below:
 
@@ -12,7 +20,10 @@ To install requirements, run the command below:
 pip install -r requirements.txt
 ```
 
-## Catalog
+## [Catalog](#index)
+1. [Datasets](#datasets)
+1. [Models](#models)
+1. [Federated learning strategies](#federated-learning-strategies)
 
 ### Datasets
 
@@ -33,7 +44,12 @@ This project contains a small version of FEMNIST with 520 clients.
 - [x] SCAFFOLD: Stochastic Controlled Averaging for Federated Learning [[`arXiv`](https://arxiv.org/abs/1910.06378)]
 - [x] FedDyn: Federated Learning Based on Dynamic Regularization [[`arXiv`](https://arxiv.org/abs/2111.04263)]
 
-## Training options
+## [Training options](#index)
+1. [Federated learning arguments](#federated-learning-arguments)
+1. [Model and dataset arguments](#model-and-dataset-arguments)
+1. [Optimizing arguments](#optimizing-arguments)
+1. [Misc](#misc)
+
 ### Federated learning arguments
 - epochs (default=300): total rounds of federated learning training
 - n_clients (default=100): number of clients participating in federated learning
