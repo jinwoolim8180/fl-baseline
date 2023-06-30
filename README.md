@@ -205,5 +205,7 @@ python main.py --dataset cifar10 --model cnn --frac 1.0 --epochs 1000 --lr 0.02 
 - n_procs (default=1): number of processes per processor
 - seed (default=0): random seed
 - no_record (action='store_true'): whether to record or not (default: record)
+- load_checkpoint (action='store_true'): whether to load model (default: do not load)
+- no_checkpoint (action='store_true'): whether to save best model (default: checkpoint)
 
 
