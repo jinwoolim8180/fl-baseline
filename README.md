@@ -1,4 +1,4 @@
-# A baseline framework for federated-learning
+# A PyTorch framework for federated-learning
 
 This is a baseline framework for federated learning.
 
