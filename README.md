@@ -195,7 +195,7 @@ python main.py --dataset cifar10 --model cnn --frac 1.0 --epochs 1000 --lr 0.02 
 - n_channels (default=1): number of channels. Automatically modified in code
 
 ### Optimizing arguments
-- optimizer (default='sgd'): Optimizer (options: SGD, Adam)
+- optimizer (default='sgd'): Optimizer (options: 'sgd', 'adam')
 - momentum (default=0.0): SGD momentum
 - fed_strategy (default='fedavg'): optimization scheme (options: 'fedavg', 'scaffold', 'feddyn')
 - alpha (default=1.0): alpha for feddyn
