@@ -47,7 +47,6 @@ def args_parser():
     parser.add_argument('--n_procs', type=int, default=1, help="number of processes per processor")
     parser.add_argument('--seed', type=int, default=0, help='random seed (default: 0)')
     parser.add_argument('--no_record', action='store_true', help='whether to record or not (default: record)')
-    parser.add_argument('--no_record', action='store_true', help='whether to record or not (default: record)')
     parser.add_argument('--load_checkpoint', action='store_true', help='whether to load model (default: do not load)')
     parser.add_argument('--no_checkpoint', action='store_true', help='whether to save best model (default: checkpoint)')
 
