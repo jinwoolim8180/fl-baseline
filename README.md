@@ -8,7 +8,8 @@ It supports various datasets and optimization strategies.
 ## Index
 1. [Install requirements](#install-requirements)
 1. [Catalog](#catalog)
-1. [Training options](#training-options)
+1. [Training](#training)
+1. [Options](#options)
 
 ---
 
@@ -16,7 +17,7 @@ It supports various datasets and optimization strategies.
 
 To install requirements, run the command below:
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
@@ -44,7 +45,128 @@ This project contains a small version of FEMNIST with 520 clients.
 - [x] SCAFFOLD: Stochastic Controlled Averaging for Federated Learning [[`arXiv`](https://arxiv.org/abs/1910.06378)]
 - [x] FedDyn: Federated Learning Based on Dynamic Regularization [[`arXiv`](https://arxiv.org/abs/2111.04263)]
 
-## [Training options](#index)
+## [Training](#index)
+
+For all tasks for FedDyn, it is good to keep `alpha` as 1.0, which is a default value.
+
+1. [MNIST](#mnist)
+1. [Fashion-MNIST](#fashion-mnist)
+1. [FEMNIST](#femnist)
+1. [CIFAR-10, CIFAR-100](#cifar-10-cifar-100)
+
+### MNIST
+
+- Participation ratio: 0.1, IID distribution
+```bash
+python main.py --dataset mnist --iid --model cnn --frac 0.1 --epochs 300 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 0.1, 2-shards-per-client distribution
+```bash
+python main.py --dataset mnist --spc --model cnn --frac 0.1 --epochs 300 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 0.1, Dirichlet distribution (beta: 0.3)
+```bash
+python main.py --dataset mnist --model cnn --frac 0.1 --epochs 300 --lr 0.01 --n_clients 100 --beta 0.3 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0, IID distribution
+```bash
+python main.py --dataset mnist --iid --model cnn --frac 1.0 --epochs 300 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0, 2-shards-per-client distribution
+```bash
+python main.py --dataset mnist --spc --model cnn --frac 1.0 --epochs 300 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0, Dirichlet distribution (beta: 0.3)
+```bash
+python main.py --dataset mnist --model cnn --frac 1.0 --epochs 300 --lr 0.01 --n_clients 100 --beta 0.3 --fed_strategy fedavg
+```
+
+### Fashion-MNIST
+
+- Participation ratio: 0.1, IID distribution
+```bash
+python main.py --dataset fashion-mnist --iid --model cnn --frac 0.1 --epochs 300 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 0.1, 2-shards-per-client distribution
+```bash
+python main.py --dataset fashion-mnist --spc --model cnn --frac 0.1 --epochs 300 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 0.1, Dirichlet distribution (beta: 0.3)
+```bash
+python main.py --dataset fashion-mnist --model cnn --frac 0.1 --epochs 300 --lr 0.01 --n_clients 100 --beta 0.3 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0, IID distribution
+```bash
+python main.py --dataset fashion-mnist --iid --model cnn --frac 1.0 --epochs 300 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0, 2-shards-per-client distribution
+```bash
+python main.py --dataset fashion-mnist --spc --model cnn --frac 1.0 --epochs 300 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0, Dirichlet distribution (beta: 0.3)
+```bash
+python main.py --dataset fashion-mnist --model cnn --frac 1.0 --epochs 300 --lr 0.01 --n_clients 100 --beta 0.3 --fed_strategy fedavg
+```
+
+### FEMNIST
+
+Keep in mind that FEMNIST is naturally non-IID and setting `iid` as true will only make an error.
+
+- Participation ratio: 0.1
+```bash
+python main.py --dataset femnist --model cnn --frac 0.1 --epochs 500 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0
+```bash
+python main.py --dataset femnist --model cnn --frac 1.0 --epochs 500 --lr 0.01 --n_clients 100 --fed_strategy fedavg
+```
+
+### CIFAR-10, CIFAR-100
+
+A CNN model can be insufficient to train CIFAR-100, so consider using ResNet50.
+
+- Participation ratio: 0.1, IID distribution
+```bash
+python main.py --dataset cifar10 --iid --model cnn --frac 0.1 --epochs 1000 --lr 0.02 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 0.1, 2-shards-per-client distribution
+```bash
+python main.py --dataset cifar10 --spc --model cnn --frac 0.1 --epochs 1000 --lr 0.02 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 0.1, Dirichlet distribution (beta: 0.3)
+```bash
+python main.py --dataset cifar10 --model cnn --frac 0.1 --epochs 1000 --lr 0.02 --n_clients 100 --beta 0.3 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0, IID distribution
+```bash
+python main.py --dataset cifar10 --iid --model cnn --frac 1.0 --epochs 1000 --lr 0.02 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0, 2-shards-per-client distribution
+```bash
+python main.py --dataset cifar10 --spc --model cnn --frac 1.0 --epochs 1000 --lr 0.02 --n_clients 100 --fed_strategy fedavg
+```
+
+- Participation ratio: 1.0, Dirichlet distribution (beta: 0.3)
+```bash
+python main.py --dataset cifar10 --model cnn --frac 1.0 --epochs 1000 --lr 0.02 --n_clients 100 --beta 0.3 --fed_strategy fedavg
+```
+
+## [Options](#index)
 1. [Federated learning arguments](#federated-learning-arguments)
 1. [Model and dataset arguments](#model-and-dataset-arguments)
 1. [Optimizing arguments](#optimizing-arguments)
