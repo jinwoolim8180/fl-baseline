@@ -47,6 +47,9 @@ def args_parser():
     parser.add_argument('--n_procs', type=int, default=1, help="number of processes per processor")
     parser.add_argument('--seed', type=int, default=0, help='random seed (default: 0)')
     parser.add_argument('--no_record', action='store_true', help='whether to record or not (default: record)')
+    parser.add_argument('--no_record', action='store_true', help='whether to record or not (default: record)')
+    parser.add_argument('--load_checkpoint', action='store_true', help='whether to load model (default: do not load)')
+    parser.add_argument('--no_checkpoint', action='store_true', help='whether to save best model (default: checkpoint)')
 
     args = parser.parse_args()
     return args
@@ -143,8 +146,14 @@ if __name__ == "__main__":
     num_processes = torch.multiprocessing.cpu_count()  # Number of available CPU cores
 
     # create dataset and model
+    result_rootpath = './result'
+    if not os.path.exists(result_rootpath):
+        os.makedirs(result_rootpath)
     train_dataset, test_dataset, dict_users = get_dataset(args=args)
     global_model = get_model(args=args, device=devices[-1])
+    if args.load_checkpoint:
+        global_model.load_state_dict(torch.load(result_rootpath + '/{}_{}_L{}_C{}_{}_iid{}_spc{}.pt'.
+                           format(args.dataset, args.model, args.local_ep, args.frac, args.fed_strategy, args.iid, args.spc)))
     w_glob = copy.deepcopy(global_model.state_dict())
     dict_to_device(w_glob, 'cpu')
 
@@ -217,8 +226,13 @@ if __name__ == "__main__":
         # test
         global_model.load_state_dict(w_glob)
         test_acc, test_loss = test(args, global_model, test_dataset, devices[-1])
-        test_accs.append(test_acc.item())
+        test_accs.append(test_acc)
         print("Testing accuracy: {:.2f}, Time: {:.4f}".format(test_acc, time.time() - start_time))
+
+        if not args.no_checkpoint:
+            if test_acc == max(test_accs):
+                torch.save(w_glob, result_rootpath + '/{}_{}_L{}_C{}_{}_iid{}_spc{}.pt'.
+                           format(args.dataset, args.model, args.local_ep, args.frac, args.fed_strategy, args.iid, args.spc))
 
     # close the pool to release resources
     for i in range(n_processes):
@@ -229,12 +243,12 @@ if __name__ == "__main__":
 
     # record test accuracies
     if not args.no_record:
-        rootpath = './log'
-        if not os.path.exists(rootpath):
-            os.makedirs(rootpath)
-        accfile = open(rootpath + '/{}_{}_{}_L{}_C{}_{}_iid{}_spc{}_lambda{}.dat'.
-                    format(args.dataset, args.model, args.epochs, args.local_ep, args.frac,
-                            args.fed_strategy, args.iid, args.spc, args.lamda), "w")
+        log_rootpath = './log'
+        if not os.path.exists(log_rootpath):
+            os.makedirs(log_rootpath)
+        accfile = open(log_rootpath + '/{}_{}_{}_L{}_C{}_{}_iid{}_spc{}.dat'.
+                    format(args.dataset, args.model, args.epochs, args.local_ep,
+                           args.frac, args.fed_strategy, args.iid, args.spc), "w")
         for acc in test_accs:
             str_ac = str(acc)
             accfile.write(str_ac)

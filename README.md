@@ -4,6 +4,8 @@ This is a baseline framework for federated learning.
 
 It supports various datasets and optimization strategies.
 
+Happy hacking!
+
 ---
 ## Index
 1. [Install requirements](#install-requirements)

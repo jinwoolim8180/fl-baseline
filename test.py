@@ -22,5 +22,5 @@ def test(args, model, dataset, device):
 
     test_loss /= len(data_loader.dataset)
     accuracy = 100.00 * correct / len(data_loader.dataset)
-    return accuracy, test_loss
+    return accuracy.item(), test_loss
 
