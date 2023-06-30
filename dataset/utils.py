@@ -5,25 +5,24 @@ from dataset.leaf import FEMNIST, ShakeSpeare
 
 def get_dataset(args):
     # load dataset and split users
-    if args.dataset == 'femnist' or args.dataset == 'shakespeare':
-        if args.dataset == 'femnist':
-            dataset_train = FEMNIST(train=True)
-            dataset_test = FEMNIST(train=False)
-            dict_users = dataset_train.get_client_dic()
-            args.n_clients = len(dict_users)
-            if args.iid:
-                exit('Error: femnist dataset is naturally non-iid')
-            else:
-                print("Warning: The femnist dataset is naturally non-iid, you do not need to specify iid or non-iid")
-        elif args.dataset == 'shakespeare':
-            dataset_train = ShakeSpeare(train=True)
-            dataset_test = ShakeSpeare(train=False)
-            dict_users = dataset_train.get_client_dic()
-            args.n_clients = len(dict_users)
-            if args.iid:
-                exit('Error: ShakeSpeare dataset is naturally non-iid')
-            else:
-                print("Warning: The ShakeSpeare dataset is naturally non-iid, you do not need to specify iid or non-iid")
+    if args.dataset == 'femnist':
+        dataset_train = FEMNIST(train=True)
+        dataset_test = FEMNIST(train=False)
+        dict_users = dataset_train.get_client_dic()
+        args.n_clients = len(dict_users)
+        if args.iid:
+            exit('Error: femnist dataset is naturally non-iid')
+        else:
+            print("Warning: The femnist dataset is naturally non-iid, you do not need to specify iid or non-iid")
+    elif args.dataset == 'shakespeare':
+        dataset_train = ShakeSpeare(train=True)
+        dataset_test = ShakeSpeare(train=False)
+        dict_users = dataset_train.get_client_dic()
+        args.n_clients = len(dict_users)
+        if args.iid:
+            exit('Error: ShakeSpeare dataset is naturally non-iid')
+        else:
+            print("Warning: The ShakeSpeare dataset is naturally non-iid, you do not need to specify iid or non-iid")
     else:
         if args.dataset == 'mnist':
             trans_mnist = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])

@@ -1,4 +1,5 @@
 import copy
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,28 +10,33 @@ def zero_grad(model):
     return grad
 
 
+def _grad_norm(net):
+    norm = 0
+    for _, param in net.named_parameters():
+        norm += param.grad.data.double().norm(2).item()
+    return math.sqrt(norm)
+
+
 def dict_to_device(dict, device):
     for k in dict.keys():
         dict[k] = dict[k].detach().to(device)
 
 
-def local_train(args, setting, lr, c, model, dataloader, device):
+def local_train(args, lr, c_i, c, model, dataloader, device):
     # hyperparameter setting
     K = 0
-    if setting.c_i is None:
+    if c_i is None:
         c_i = zero_grad(model)
-    else:
-        c_i = setting.c_i
-        dict_to_device(c_i, device)
     if c is None:
         c = zero_grad(model)
+    dict_to_device(c_i, device)
     dict_to_device(c, device)
 
     # optimizer and scheduler setting
     if args.optimizer == 'sgd':
-        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=args.momentum)
+        optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     elif args.optimizer == 'adam':
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=args.lr_decay)
 
     # copy previous parameter
@@ -53,14 +59,28 @@ def local_train(args, setting, lr, c, model, dataloader, device):
                 for k, v in model.named_parameters():
                     loss += torch.sum(v * (c[k] - c_i[k]))
             loss.backward()
-            # if args.fed_strategy == 'feddyn':
-            #     for name, param in model.named_parameters():
-            #         param.grad.data += args.alpha * (param.data - prev_param[name]) - c_i[name]
+            if args.fed_strategy == 'implicit':
+                    param_copy = copy.deepcopy(model.state_dict())
+                    grad_copy = {k: copy.deepcopy(v.grad.data).to(v.grad.device) for k, v in model.named_parameters()}
+                    norm = _grad_norm(model) + 1e-7
+                    for name, param in model.named_parameters():
+                        param.data += 0.1 / norm * param.grad.data
+
+                    log_probs = model(images)
+                    loss = F.cross_entropy(log_probs, labels)
+                    loss.backward()
+                    for name, param in model.named_parameters():
+                        param.grad.data *= args.lamda * norm / 0.1
+                        param.grad.data += (1 - args.lamda * norm / 0.1) * grad_copy[name]
+                    model.load_state_dict(param_copy)
+            elif args.fed_strategy == 'feddyn':
+                for name, param in model.named_parameters():
+                    param.grad.data += args.alpha * (param.data - prev_param[name]) - c_i[name]
             optimizer.step()
             K += 1
             batch_loss += loss.item()
-        epoch_loss += batch_loss
         scheduler.step()
+        epoch_loss += batch_loss
     epoch_loss /= K
 
     # hyperparamter changing
@@ -74,4 +94,4 @@ def local_train(args, setting, lr, c, model, dataloader, device):
     w = copy.deepcopy(model.state_dict())
     dict_to_device(w, 'cpu')
     dict_to_device(c_i, 'cpu')
-    return w, epoch_loss, scheduler.get_last_lr()[0], c_i
+    return w, epoch_loss, c_i

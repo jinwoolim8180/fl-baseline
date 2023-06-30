@@ -1,14 +1,14 @@
-import torch
-import numpy as np
-import time
+import os
+import math
 import argparse
 import copy
 import random
-import os
-from torch.utils.data import DataLoader, Subset
+import torch
+import numpy as np
+from torch.utils.data import DataLoader
 from torch.multiprocessing import Manager, Process, Queue
 
-from dataset import get_dataset
+from dataset import get_dataset, DatasetSplit
 from models import get_model
 from client import local_train
 from server import aggregate
@@ -25,11 +25,10 @@ def args_parser():
     parser.add_argument('--test_bs', type=int, default=128, help="test batch size")
     parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
     parser.add_argument('--lr_decay', type=float, default=0.995, help="learning rate decay each round")
+    parser.add_argument('--lr_decay_step_size', type=int, default=500, help="step size to decay learning rate")
 
-    # model arguments
+    # model and dataset arguments
     parser.add_argument('--model', type=str, default='cnn', help='model name')
-
-    # dataset arguments
     parser.add_argument('--dataset', type=str, default='mnist', help="name of dataset")
     parser.add_argument('--iid', action='store_true', help='whether i.i.d or notc (default: non-iid)')
     parser.add_argument('--spc', action='store_true', help='whether spc or not (default: dirichlet)')
@@ -42,9 +41,13 @@ def args_parser():
     parser.add_argument('--momentum', type=float, default=0.0, help="SGD momentum (default: 0.5)")
     parser.add_argument('--fed_strategy', type=str, default='fedavg', help="optimization scheme e.g. fedavg")
     parser.add_argument('--alpha', type=float, default=1.0, help="alpha for feddyn")
+    parser.add_argument('--lamda', type=float, default=0.01, help="lambda for penalizing graident norm")
+
+    # misc
     parser.add_argument('--n_gpu', type=int, default=4, help="number of GPUs")
     parser.add_argument('--n_procs', type=int, default=1, help="number of processes per processor")
     parser.add_argument('--seed', type=int, default=0, help='random seed (default: 0)')
+    parser.add_argument('--no_record', action='store_true', help='whether to record or not (default: record)')
 
     args = parser.parse_args()
     return args
@@ -71,33 +74,34 @@ def train_clients(args, param_queue, return_queue, device, train_dataset, client
         else:
             # parameter setting
             lr = param['lr']
-            model.load_state_dict(param['model_param'])
             sel_clients = param['sel_clients']
             c = param['c']
 
             # training multiple clients
             w_locals = []
             loss_locals = []
-            lr_locals = []
             c_locals = []
             for client in sel_clients:
                 # get client settings
                 setting = client_settings[client]
+                c_i = setting.c_i
                 # training dataloader for specific client
-                dataloader = DataLoader(Subset(train_dataset, setting.dict_user))
+                dataloader = DataLoader(DatasetSplit(train_dataset, setting.dict_users), batch_size=args.local_bs, shuffle=True)
+                # initialize model state dict
+                model.load_state_dict(param['model_param'])
                 # train a client
-                w, loss, lr_local, c_i = local_train(args, setting, lr, c, model, dataloader, device)
-                # append w, loss, lr, c_i
+                w, loss, c_i = local_train(args, lr, c_i, c, model, dataloader, device)
+                # append w, loss, lr, c_i, alpha
                 w_locals.append(w)
                 loss_locals.append(loss)
-                lr_locals.append(lr_local)
                 if args.fed_strategy == 'scaffold':
                     c_locals.append(c_i)
                 # modify settings
                 setting.c_i = c_i
+                del dataloader
 
             # return training results
-            result = {'w_locals': w_locals, 'loss_locals': loss_locals, 'lr': max(lr_locals), 'c_locals': c_locals}
+            result = {'w_locals': w_locals, 'loss_locals': loss_locals, 'c_locals': c_locals}
             return_queue.put(result)
         del param
     del model
@@ -150,7 +154,7 @@ if __name__ == "__main__":
     client_settings = []
     for idx in range(args.n_clients):
         s = manager.Namespace()
-        s.dict_user = dict_users[idx]
+        s.dict_users = dict_users[idx]
         s.c_i = None
         client_settings.append(s)
 
@@ -173,6 +177,7 @@ if __name__ == "__main__":
     n_clients = int(args.frac * args.n_clients)
     c = zero_grad(global_model)
     lr = args.lr
+    test_accs = []
     for round in range(args.epochs):
         # randomly select clients
         random.shuffle(client_all)
@@ -195,26 +200,24 @@ if __name__ == "__main__":
         # aggregate
         w_locals = []
         loss_locals = []
-        lr_locals = []
         c_locals = []
         for i in range(n_processes):
             result = result_queues[i].get()
             w_locals.extend(result['w_locals'])
             loss_locals.extend(result['loss_locals'])
-            lr_locals.append(result['lr'])
             c_locals.extend(result['c_locals'])
-        w_glob, c = aggregate(args, w_locals, w_glob, c, c_locals)
         loss = sum(loss_locals) / len(loss_locals)
-        lr = max(lr_locals)
+        lr *= args.lr_decay ** (round // args.lr_decay_step_size)
+        w_glob, c = aggregate(args, w_locals, w_glob, c, c_locals)
         print("Round {:3d} \t Training loss: {:.6f}".format(round + 1, loss), end=', ')
         del w_locals
         del loss_locals
-        del lr_locals
         del c_locals
 
         # test
         global_model.load_state_dict(w_glob)
         test_acc, test_loss = test(args, global_model, test_dataset, devices[-1])
+        test_accs.append(test_acc.item())
         print("Testing accuracy: {:.2f}".format(test_acc))
 
     # close the pool to release resources
@@ -223,3 +226,17 @@ if __name__ == "__main__":
 
     for p in processes:
         p.join()
+
+    # record test accuracies
+    if not args.no_record:
+        rootpath = './log'
+        if not os.path.exists(rootpath):
+            os.makedirs(rootpath)
+        accfile = open(rootpath + '/{}_{}_{}_L{}_C{}_{}_iid{}_spc{}_lambda{}.dat'.
+                    format(args.dataset, args.model, args.epochs, args.local_ep, args.frac,
+                            args.fed_strategy, args.iid, args.spc, args.lamda), "w")
+        for acc in test_accs:
+            str_ac = str(acc)
+            accfile.write(str_ac)
+            accfile.write('\n')
+        accfile.close()
