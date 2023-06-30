@@ -1,5 +1,5 @@
 import os
-import math
+import time
 import argparse
 import copy
 import random
@@ -16,15 +16,15 @@ from test import test
 
 def args_parser():
     parser = argparse.ArgumentParser()
-    # federated arguments
-    parser.add_argument('--epochs', type=int, default=5, help="rounds of training")
+    # federated learning arguments
+    parser.add_argument('--epochs', type=int, default=300, help="rounds of training")
     parser.add_argument('--n_clients', type=int, default=100, help="number of users: K")
     parser.add_argument('--frac', type=float, default=0.1, help="the fraction of clients: C")
     parser.add_argument('--local_ep', type=int, default=5, help="the number of local epochs: E")
     parser.add_argument('--local_bs', type=int, default=100, help="local batch size: B")
     parser.add_argument('--test_bs', type=int, default=128, help="test batch size")
     parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
-    parser.add_argument('--lr_decay', type=float, default=0.995, help="learning rate decay each round")
+    parser.add_argument('--lr_decay', type=float, default=0.9, help="learning rate decay")
     parser.add_argument('--lr_decay_step_size', type=int, default=500, help="step size to decay learning rate")
 
     # model and dataset arguments
@@ -34,14 +34,13 @@ def args_parser():
     parser.add_argument('--spc', action='store_true', help='whether spc or not (default: dirichlet)')
     parser.add_argument('--beta', type=float, default=0.2, help="beta for Dirichlet distribution")
     parser.add_argument('--n_classes', type=int, default=10, help="number of classes")
-    parser.add_argument('--n_channels', type=int, default=1, help="number of channels of imges")
+    parser.add_argument('--n_channels', type=int, default=1, help="number of channels")
 
     # optimizing arguments
     parser.add_argument('--optimizer', type=str, default='sgd', help="Optimizer (default: SGD)")
-    parser.add_argument('--momentum', type=float, default=0.0, help="SGD momentum (default: 0.5)")
+    parser.add_argument('--momentum', type=float, default=0.0, help="SGD momentum (default: 0.0)")
     parser.add_argument('--fed_strategy', type=str, default='fedavg', help="optimization scheme e.g. fedavg")
     parser.add_argument('--alpha', type=float, default=1.0, help="alpha for feddyn")
-    parser.add_argument('--lamda', type=float, default=0.01, help="lambda for penalizing graident norm")
 
     # misc
     parser.add_argument('--n_gpu', type=int, default=4, help="number of GPUs")
@@ -164,7 +163,7 @@ if __name__ == "__main__":
     processes = []
     n_processes = n_devices * args.n_procs
     for i in range(n_devices):
-        for j in range(args.n_procs):
+        for _ in range(args.n_procs):
             param_queue, result_queue = Queue(), Queue()
             p = Process(target=train_clients, args=(args, param_queue, result_queue, devices[i], train_dataset, client_settings))
             p.start()
@@ -193,6 +192,7 @@ if __name__ == "__main__":
             assigned_clients[i].append(rest)
 
         # start training
+        start_time = time.time()
         for i in range(n_processes):
             param_queues[i].put({'model_param': copy.deepcopy(w_glob), 'lr': lr,
                                  'sel_clients': assigned_clients[i], 'c': c})
@@ -218,7 +218,7 @@ if __name__ == "__main__":
         global_model.load_state_dict(w_glob)
         test_acc, test_loss = test(args, global_model, test_dataset, devices[-1])
         test_accs.append(test_acc.item())
-        print("Testing accuracy: {:.2f}".format(test_acc))
+        print("Testing accuracy: {:.2f}, Time: {:.4f}".format(test_acc, time.time() - start_time))
 
     # close the pool to release resources
     for i in range(n_processes):
