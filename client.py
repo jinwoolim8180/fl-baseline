@@ -22,7 +22,7 @@ def dict_to_device(dict, device):
         dict[k] = dict[k].detach().to(device)
 
 
-def local_train(args, lr, c_i, c, model, dataloader, device):
+def local_train(args, lr, c_i, c, K, model, dataloader, device):
     # hyperparameter setting
     K = 0
     if c_i is None:
@@ -75,4 +75,4 @@ def local_train(args, lr, c_i, c, model, dataloader, device):
     w = copy.deepcopy(model.state_dict())
     dict_to_device(w, 'cpu')
     dict_to_device(c_i, 'cpu')
-    return w, epoch_loss, c_i
+    return w, epoch_loss, c_i, K

@@ -86,12 +86,13 @@ def train_clients(args, param_queue, return_queue, device, train_dataset, client
                 # get client settings
                 setting = client_settings[client]
                 c_i = setting.c_i
+                K = setting.K
                 # training dataloader for specific client
                 dataloader = DataLoader(DatasetSplit(train_dataset, setting.dict_users), batch_size=args.local_bs, shuffle=True)
                 # initialize model state dict
                 model.load_state_dict(param['model_param'])
                 # train a client
-                w, loss, c_i = local_train(args, lr, c_i, c, model, dataloader, device)
+                w, loss, c_i, K = local_train(args, lr, c_i, c, K, model, dataloader, device)
                 # append w, loss, lr, c_i, alpha
                 w_locals.append(w)
                 loss_locals.append(loss)
@@ -99,6 +100,7 @@ def train_clients(args, param_queue, return_queue, device, train_dataset, client
                     c_locals.append(c_i)
                 # modify settings
                 setting.c_i = c_i
+                setting.K = K
                 del dataloader
 
             # return training results
@@ -163,6 +165,7 @@ if __name__ == "__main__":
         s = manager.Namespace()
         s.dict_users = dict_users[idx]
         s.c_i = None
+        s.K = 15
         client_settings.append(s)
 
     # create pool
@@ -203,7 +206,7 @@ if __name__ == "__main__":
         start_time = time.time()
         for i in range(n_processes):
             param_queues[i].put({'model_param': copy.deepcopy(w_glob), 'lr': lr,
-                                 'sel_clients': assigned_clients[i], 'c': c})
+                                 'sel_clients': assigned_clients[i], 'c': copy.deepcopy(c)})
 
         # aggregate
         w_locals = []
@@ -237,6 +240,7 @@ if __name__ == "__main__":
     for i in range(n_processes):
         param_queues[i].put("kill")
 
+    time.sleep(5)
     for p in processes:
         p.join()
 
