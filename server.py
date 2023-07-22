@@ -12,7 +12,7 @@ def aggregate(args, w, w_glob, c, c_locals):
     # feddyn
     if args.fed_strategy == 'feddyn':
         for k in c.keys():
-            c[k] -= args.alpha * (w_avg[k] - w_glob[k])
+            c[k] -= args.alpha * (w_avg[k] - w_glob[k]) * len(w) / args.n_clients
         for k in w_avg.keys():
             w_avg[k] -= c[k] / args.alpha
 
@@ -23,5 +23,7 @@ def aggregate(args, w, w_glob, c, c_locals):
             for i in range(1, len(c_locals)):
                 c_avg[k] += c_locals[i][k]
             c_avg[k] = torch.div(c_avg[k], len(c_locals))
+        for k in c.keys():
+            c[k] += len(c_locals) * c_avg[k] / args.num_users
 
-    return w_avg, c_avg if args.fed_strategy == 'scaffold' else c
+    return w_avg, c
